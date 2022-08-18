@@ -44,7 +44,8 @@ async fn main() -> anyhow::Result<()> {
         Ok(_) => {}
         Err(e) => error!("Error calling create_context {}: {}", id, e),
     };
-    for _i in 0..10 {
+    for i in 0..10 {
+        println!("\nloop {}\n", i);
         let rt = rt.clone();
         match rt.js_loop_realm_sync(Some(id), move |_q_js_rt, q_ctx| {
             let res = q_ctx.eval(Script::new(
