@@ -44,36 +44,31 @@ async fn main() -> anyhow::Result<()> {
         Ok(_) => {}
         Err(e) => error!("Error calling create_context {}: {}", id, e),
     };
+    for _i in 0..10 {
+        let rt = rt.clone();
+        match rt.js_loop_realm_sync(Some(id), move |_q_js_rt, q_ctx| {
+            let res = q_ctx.eval(Script::new(
+                "test.js",
+                r#"JSON.stringify({rows: [{"appUid":"cloudio","comment":"👍","commentedBy":"admin","contextId":"$DD$","contextValue":"cloudio.home","createdBy":"admin","creationDate":"2022-08-18T06:17:06.871617Z","lastUpdateDate":"2022-08-18T06:17:06.871617Z","lastUpdatedBy":"admin","md":{},"orgUid":"cloudio","uid":"01GAQSJAHQ7WE54JNRC1J9HVH3","_rs":"Q"}]})"#,
+            ));
 
-    match rt.js_loop_realm_sync(Some(id), move |_q_js_rt, q_ctx| {
-        let res = q_ctx.eval(Script::new(
-            "test.js",
-            r#"async function abc() {
-
-                // replace the below emoji with some text to see it working
-                
-                return JSON.stringify({rows: [{"appUid":"cloudio","comment":"👍","commentedBy":"admin","contextId":"$DD$","contextValue":"cloudio.home","createdBy":"admin","creationDate":"2022-08-18T06:17:06.871617Z","lastUpdateDate":"2022-08-18T06:17:06.871617Z","lastUpdatedBy":"admin","md":{},"orgUid":"cloudio","uid":"01GAQSJAHQ7WE54JNRC1J9HVH3","_rs":"Q"}]});
+            match res {
+                Ok(js) => q_ctx.to_js_value_facade(&js),
+                Err(e) => Err(e),
             }
-            abc();"#,
-        ));
-
-        match res {
-            Ok(js) => q_ctx.to_js_value_facade(&js),
-            Err(e) => Err(e),
-        }
-    }) {
-        Ok(r) => {
-            let fut = get_as_string(rt, r, "return value".to_owned(), id.to_string()).await;
-            match fut {
-                Ok(val) => println!("result={}", val),
-                Err(e) => eprintln!("err: {}", e),
-            };
-        }
-        Err(e) => {
-            eprintln!("error: {}", e);
-        }
-    };
-
+        }) {
+            Ok(r) => {
+                let fut = get_as_string(rt, r, "return value".to_owned(), id.to_string()).await;
+                match fut {
+                    Ok(val) => println!("result={}", val),
+                    Err(e) => eprintln!("err: {}", e),
+                };
+            }
+            Err(e) => {
+                eprintln!("error: {}", e);
+            }
+        };
+    }
     // drop the above created context
     rt2.drop_context(id2);
 
